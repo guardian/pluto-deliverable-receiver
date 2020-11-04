@@ -17,10 +17,16 @@ type LocalStorage struct {
 	LocalPath string `yaml:"localpath"`
 }
 
+type JwtConfig struct {
+	PublicKeyPem   string   `yaml:"public_key"`
+	UserNameClaims []string `yaml:"username_claim_names"`
+}
+
 type Config struct {
-	Redis        RedisConfig    `yaml:"redis"`
-	StoragePrefix      LocalStorage `yaml:"storage_prefix"`
-	UploadSlotTTL string `yaml:"upload_slot_ttl"`
+	Redis         RedisConfig  `yaml:"redis"`
+	StoragePrefix LocalStorage `yaml:"storage_prefix"`
+	UploadSlotTTL string       `yaml:"upload_slot_ttl"`
+	JWT           JwtConfig    `yaml:"jwt"`
 }
 
 func (c *Config) UploadSlotTTLDuration() (time.Duration, error) {
