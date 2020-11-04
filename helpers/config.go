@@ -18,7 +18,7 @@ type LocalStorage struct {
 }
 
 type JwtConfig struct {
-	PublicKeyPem   string   `yaml:"public_key"`
+	CertFile       string   `yaml:"cert_file"`
 	UserNameClaims []string `yaml:"username_claim_names"`
 }
 

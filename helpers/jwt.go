@@ -7,8 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 )
@@ -32,13 +34,33 @@ func extractAuth(h *http.Request) (string, error) {
 	return matches[0][2], nil
 }
 
-func extractPublicKey(certPem string) *rsa.PublicKey {
+func extractPublicKey(certPem string) (*rsa.PublicKey, error) {
 	block, _ := pem.Decode([]byte(certPem))
 
-	var cert *x509.Certificate
-	cert, _ = x509.ParseCertificate(block.Bytes)
+	//var cert *x509.Certificate
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		log.Printf("ERROR helpers.extractPublicKey could not parse incoming certificate: ", err)
+		return nil, err
+	}
 	rsaPublicKey := cert.PublicKey.(*rsa.PublicKey)
-	return rsaPublicKey
+	return rsaPublicKey, nil
+}
+
+func LoadPublicKey(filePath string) (string, error) {
+	f, openErr := os.Open(filePath)
+	if openErr != nil {
+		log.Printf("ERROR helpers.LoadPublicKey could not load cert from '%s': %s", filePath, openErr)
+		return "", openErr
+	}
+	defer f.Close()
+
+	data, readErr := ioutil.ReadAll(f)
+	if readErr != nil {
+		log.Printf("ERROR helpers.LoadPublicKey could not read in all data from '%s': %s", filePath, readErr)
+		return "", readErr
+	}
+	return string(data), nil
 }
 
 func ValidateLogin(h *http.Request, config *Config) (string, error) {
@@ -47,17 +69,24 @@ func ValidateLogin(h *http.Request, config *Config) (string, error) {
 		return "", rawErr
 	}
 
+	publicCertData, loadErr := LoadPublicKey(config.JWT.CertFile)
+	if loadErr != nil {
+		return "", errors.New("server setup problem, see logs")
+	}
+
 	token, tokErr := jwt.Parse(rawData, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		key := extractPublicKey(config.JWT.PublicKeyPem)
-		return key, nil
+		return extractPublicKey(publicCertData)
 	})
 
 	if tokErr != nil {
-		if validationErr, isValidationErr := tokErr.(jwt.ValidationError); isValidationErr {
+		if validationErr, isValidationErr := tokErr.(*jwt.ValidationError); isValidationErr {
 			log.Print("ERROR helpers.jwt.ValidateLogin could not validate: ", validationErr.Error())
+			if (validationErr.Errors | jwt.ValidationErrorExpired) != 0 {
+				return "", errors.New("token is expired")
+			}
 		} else {
 			log.Printf("ERROR helpers.jwt.ValidateLogin could not validate token '%s': %s", rawData, tokErr)
 		}

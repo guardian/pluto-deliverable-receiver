@@ -1,0 +1,13 @@
+redis:
+  address: 127.0.0.1:6379
+  #password: {add your password here}
+  dbNum: 1
+storage_prefix:
+  localpath: /srv/deliverables
+upload_slot_ttl: 30m  #this can be any valid duration string - 1h, 1 hour, 30mins, 4s, etc.
+jwt:
+  cert_file: config/cert.pem  #location of the signing certificate for validating logins
+  username_claim_names:       #list of fields in the claim to use as the username
+    - preferred_username
+    - username
+    - email
