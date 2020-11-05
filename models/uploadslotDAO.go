@@ -12,14 +12,18 @@ import (
 
 /**
 retrieve the upload slot for the given id
- */
-func UploadSlotForId(id uuid.UUID, redis *redis.Client) (UploadSlot, error) {
+*/
+func UploadSlotForId(id uuid.UUID, redis *redis.Client) (*UploadSlot, error) {
 	keyPath := fmt.Sprintf("receiver:upload_slot:%s", id.String())
 
 	content, getErr := redis.Get(keyPath).Result()
 	if getErr != nil {
 		log.Printf("ERROR models.UploadSlotForId could not get value for '%s': %s", keyPath, getErr)
-		return UploadSlot{}, getErr
+		return nil, getErr
+	}
+
+	if content == "" {
+		return nil, nil
 	}
 
 	var s UploadSlot
@@ -28,15 +32,15 @@ func UploadSlotForId(id uuid.UUID, redis *redis.Client) (UploadSlot, error) {
 		log.Printf("ERROR models.UploadSlotForId could not parse value for '%s': %s. Deleting the corrupted value.", keyPath, unmarshalErr)
 		log.Print("ERROR models.UploadSlotForId content was ", content)
 		redis.Del(keyPath)
-		return UploadSlot{}, unmarshalErr
+		return nil, unmarshalErr
 	}
 
-	return s, nil
+	return &s, nil
 }
 
 /**
 write the given slot data to the storage layer
- */
+*/
 func WriteUploadSlot(s *UploadSlot, redis *redis.Client) error {
 	keyPath := fmt.Sprintf("receiver:upload_slot:%s", s.Uuid.String())
 

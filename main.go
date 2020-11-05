@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"github.com/go-redis/redis/v7"
 	"gitlab.com/codmill/customer-projects/guardian/deliverable-receiver/helpers"
 	"log"
@@ -8,10 +9,10 @@ import (
 )
 
 type MyHttpApp struct {
-	index IndexHandler
+	index       IndexHandler
 	healthcheck HealthcheckHandler
-	initiate InitiateHandler
-	uploadFile UploadHandler
+	initiate    InitiateHandler
+	uploadFile  UploadHandler
 }
 
 func SetupRedis(config *helpers.Config) (*redis.Client, error) {
@@ -33,11 +34,13 @@ func SetupRedis(config *helpers.Config) (*redis.Client, error) {
 
 func main() {
 	var app MyHttpApp
+	configPathPtr := flag.String("config", "config/serverconfig.yaml", "path to the yaml config file")
+	flag.Parse()
 	/*
 		read in config and establish connection to persistence layer
 	*/
-	log.Printf("Reading config from serverconfig.yaml")
-	config, configReadErr := helpers.ReadConfig("config/serverconfig.yaml")
+	log.Printf("Reading config from %s", *configPathPtr)
+	config, configReadErr := helpers.ReadConfig(*configPathPtr)
 	log.Print("Done.")
 
 	if configReadErr != nil {
