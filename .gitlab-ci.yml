@@ -1,0 +1,23 @@
+stages:
+  - buildntest
+  - upload
+
+golang:
+  image: golang:1.15-alpine
+  stage: buildntest
+  script:
+    - go test
+    - GOOS=linux GOARCH=amd64 go build -o deliverable-receiver.linux64
+  artifacts:
+    paths:
+      - deliverable-receiver.linux64
+
+upload:
+  image: docker:19.03.11
+  stage: upload
+  services:
+    - docker:dind
+  script:
+    - docker build . -t guardianmultimedia/deliverable-receiver:$CI_PIPELINE_IID
+    - docker login -u "${DOCKER_USER}" -p "${DOCKER_PAT}"
+    - docker push guardianmultimedia/deliverable-receiver:$CI_PIPELINE_IID
