@@ -54,6 +54,7 @@ func main() {
 
 	app.healthcheck.redisClient = redisClient
 	app.uploadFile.redisClient = redisClient
+	app.uploadFile.config = config
 	app.initiate.redisClient = redisClient
 	app.initiate.config = config
 

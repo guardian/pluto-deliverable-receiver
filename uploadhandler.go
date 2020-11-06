@@ -24,7 +24,7 @@ sanitises the given incoming filename and combines it with the base path from co
 */
 func getTargetFilename(configBase string, slotBase string, requestedFilename string) string {
 	fileBase := path.Base(requestedFilename)
-	sanitizer := regexp.MustCompile("[^\\w\\d\\s]")
+	sanitizer := regexp.MustCompile("[^\\w\\d\\s.]")
 	sanitizedFileBase := sanitizer.ReplaceAllString(fileBase, "")
 
 	return path.Join(configBase, slotBase, sanitizedFileBase)
@@ -38,7 +38,7 @@ func writeOutData(fullpath string, content io.Reader) (int64, error) {
 	dirpath := path.Dir(fullpath)
 	if _, err := os.Stat(dirpath); os.IsNotExist(err) {
 		log.Printf("INFO Uploadandler.writeOutData target path %s does not exist, creating", dirpath)
-		mkDirErr := os.MkdirAll(dirpath, 0664)
+		mkDirErr := os.MkdirAll(dirpath, 0775)
 		if mkDirErr != nil {
 			log.Printf("ERROR UploadHandler.writeOutData could not create directory %s: %s", dirpath, mkDirErr)
 			return -1, mkDirErr
