@@ -34,7 +34,7 @@ func getTargetFilename(configBase string, slotBase string, requestedFilename str
 writes the data from the given reader out to the given filename.
 creates the parent directory if necessary
 */
-func writeOutData(fullpath string, content io.Reader) (int64, error) {
+func writeOutData(fullpath string, maybeRange *helpers.RangeHeader, content io.Reader) (int64, error) {
 	dirpath := path.Dir(fullpath)
 	if _, err := os.Stat(dirpath); os.IsNotExist(err) {
 		log.Printf("INFO Uploadandler.writeOutData target path %s does not exist, creating", dirpath)
@@ -45,14 +45,31 @@ func writeOutData(fullpath string, content io.Reader) (int64, error) {
 		}
 	}
 
-	//FIXME: this would over-write an existing file
-	f, openErr := os.OpenFile(fullpath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0664)
+	//FIXME: this over-writes an existing file
+	openFlags := os.O_WRONLY
+	if maybeRange != nil && maybeRange.IsFirst() {
+		openFlags |= os.O_CREATE | os.O_TRUNC
+	}
+
+	f, openErr := os.OpenFile(fullpath, openFlags, 0664)
 	if openErr != nil {
 		log.Printf("ERROR UploadHandler.writeOutData could not open %s to write: %s", fullpath, openErr)
 		return -1, openErr
 	}
 	defer f.Close()
-	return io.Copy(f, content)
+
+	if maybeRange == nil || maybeRange.IsComplete() {
+		log.Printf("INFO UploadHandler.writeOutData no range so writing whole file")
+		return io.Copy(f, content)
+	} else {
+		_, seekErr := f.Seek(maybeRange.Start, os.SEEK_SET)
+		if seekErr != nil {
+			log.Printf("ERROR UploadHandler.writeOutData could not seek '%s': %s", fullpath, seekErr)
+			return -1, seekErr
+		}
+		//FIXME: check if this actually writes correctly
+		return io.Copy(f, content)
+	}
 }
 
 /**
@@ -123,6 +140,17 @@ func (h UploadHandler) ServeHTTP(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 
+	maybeRangeHeader, rangeErr := helpers.ExtractRange(request)
+	if rangeErr != nil {
+		log.Printf("ERROR UploadHandler could not parse range parameter '%s': %s", request.Header.Get("Range"), rangeErr)
+		response := helpers.GenericErrorResponse{
+			Status: "invalid_request",
+			Detail: rangeErr.Error(),
+		}
+		helpers.WriteJsonContent(response, w, 400)
+		return
+	}
+
 	uploadSlot, slotErr := models.UploadSlotForId(uploadSlotUuid, h.redisClient)
 	if slotErr != nil {
 		log.Printf("ERROR UploadHandler could not get upload slot for '%s': %s", uploadSlotUuid, slotErr)
@@ -149,7 +177,7 @@ func (h UploadHandler) ServeHTTP(w http.ResponseWriter, request *http.Request) {
 
 	log.Printf("INFO UploadHandler upload request from %s to %s", username, targetFilename)
 
-	bytesWritten, writeErr := writeOutData(targetFilename, request.Body)
+	bytesWritten, writeErr := writeOutData(targetFilename, maybeRangeHeader, request.Body)
 	if writeErr != nil {
 		response := helpers.GenericErrorResponse{
 			Status: "write_error",

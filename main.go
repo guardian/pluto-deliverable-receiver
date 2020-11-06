@@ -9,10 +9,11 @@ import (
 )
 
 type MyHttpApp struct {
-	index       IndexHandler
-	healthcheck HealthcheckHandler
-	initiate    InitiateHandler
-	uploadFile  UploadHandler
+	index            IndexHandler
+	healthcheck      HealthcheckHandler
+	initiate         InitiateHandler
+	uploadFile       UploadHandler
+	validateChecksum ValidateChecksumHandler
 }
 
 func SetupRedis(config *helpers.Config) (*redis.Client, error) {
@@ -57,11 +58,14 @@ func main() {
 	app.uploadFile.config = config
 	app.initiate.redisClient = redisClient
 	app.initiate.config = config
+	app.validateChecksum.redisClient = redisClient
+	app.validateChecksum.config = config
 
 	http.Handle("/", app.index)
 	http.Handle("/healthcheck", app.healthcheck)
 	http.Handle("/initiate", app.initiate)
 	http.Handle("/upload", app.uploadFile)
+	http.Handle("/validate", app.validateChecksum)
 
 	log.Printf("Starting server on port 9000")
 	startServerErr := http.ListenAndServe(":9000", nil)

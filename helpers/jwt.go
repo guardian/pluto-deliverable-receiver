@@ -40,7 +40,7 @@ func extractPublicKey(certPem string) (*rsa.PublicKey, error) {
 	//var cert *x509.Certificate
 	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		log.Printf("ERROR helpers.extractPublicKey could not parse incoming certificate: ", err)
+		log.Print("ERROR helpers.extractPublicKey could not parse incoming certificate: ", err)
 		return nil, err
 	}
 	rsaPublicKey := cert.PublicKey.(*rsa.PublicKey)
