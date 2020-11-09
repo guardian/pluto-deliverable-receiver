@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -23,11 +24,16 @@ type InitiateRequest struct {
 }
 
 func makeRelativePath(inputPath string, config *helpers.Config) (string, error) {
-	if !strings.HasPrefix(inputPath, config.StoragePrefix.LocalPath) {
-		return "", errors.New("invalid destination path, please check the settings")
-	}
+	serverSidePathConverter := regexp.MustCompile("^/Volumes")
+	potentialPaths := []string{inputPath, serverSidePathConverter.ReplaceAllString(inputPath, "/srv")}
 
-	return inputPath[len(config.StoragePrefix.LocalPath):], nil
+	for _, path := range potentialPaths {
+		if strings.HasPrefix(path, config.StoragePrefix.LocalPath) {
+			return path[len(config.StoragePrefix.LocalPath):], nil
+		}
+	}
+	return "", errors.New("invalid destination path, please check the settings")
+
 }
 
 func (h InitiateHandler) ServeHTTP(w http.ResponseWriter, request *http.Request) {
