@@ -20,8 +20,10 @@ upload:
     - docker:dind
   script:
     - apk add aws-cli
-    - docker build . -t 855023211239.dkr.ecr.eu-west-1.amazonaws.com/deliverable-receiver:$CI_PIPELINE_IID
+    - cat /etc/resolv.conf
+    - echo nameserver 8.8.8.8 > /etc/resolv.conf
     - aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 855023211239.dkr.ecr.eu-west-1.amazonaws.com
+    - docker build . -t 855023211239.dkr.ecr.eu-west-1.amazonaws.com/deliverable-receiver:$CI_PIPELINE_IID
     - docker push 855023211239.dkr.ecr.eu-west-1.amazonaws.com/deliverable-receiver:$CI_PIPELINE_IID
     - "echo ci_commit_branch: ${CI_COMMIT_BRANCH} >> build-info.yaml"
     - "echo ci_commit_ref_name: ${CI_COMMIT_REF_NAME} >> build-info.yaml"
