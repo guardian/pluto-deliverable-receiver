@@ -1,4 +1,4 @@
-FROM alpine:3.12
+FROM alpine:3.14
 
 COPY config/serverconfig.yaml /etc/deliverable-receiver/serverconfig.yaml
 COPY deliverable-receiver.linux64 /usr/local/bin/deliverable-receiver
