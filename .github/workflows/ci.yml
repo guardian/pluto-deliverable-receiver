@@ -12,9 +12,12 @@ jobs:
     name: Test the build-info action
     steps:
       - name: Output build-info.yaml
-        uses: fredex42/pluto-build-info@dd433cafebe7cc27d03d7b47c560a354b324733b
+        uses: fredex42/pluto-build-info@91a93eddc7bc7b3c6c70a9f853db2fc6233ac523
         with:
           builtimage: test
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check the output
+        run: cat build-info.yaml
 
   build:
     runs-on: ubuntu-latest
