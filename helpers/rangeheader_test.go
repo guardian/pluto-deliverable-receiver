@@ -6,7 +6,7 @@ import "testing"
 ParseRangeHeader should return the range values for a given header
 */
 func TestParseRangeHeader_ok(t *testing.T) {
-	sampleContent := "Bytes 12-38/96"
+	sampleContent := "Bytes=12-38/96"
 
 	result, err := ParseRangeHeader(sampleContent)
 	if err != nil {
