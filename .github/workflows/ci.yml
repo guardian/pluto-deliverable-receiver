@@ -1,0 +1,76 @@
+name: Go
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # These permissions are needed to interact with GitHub's OIDC Token endpoint.
+    permissions:
+      id-token: write
+      contents: read
+      
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Make GITHUB_RUN_NUMBER env var available outside of shells
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      shell: bash
+      run: |
+        echo GITHUB_RUN_NUMBER=$GITHUB_RUN_NUMBER>> $GITHUB_ENV
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-region: ${{ secrets.AWS_REGION }}
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        role-session-name: GHA-build
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+      
+    - name: Build
+      run: GOOS=linux GOARCH=amd64 go build -v -o deliverable-receiver.linux64
+
+    - name: Debug
+      run: echo $PWD; ls -lhd deliverable-receiver*
+
+    - name: Test
+      run: go test -v ./...
+
+    - name: ECR Login
+      run: aws ecr get-login-password --region ***REMOVED*** | docker login --username AWS --password-stdin ***REMOVED***.dkr.ecr.***REMOVED***.amazonaws.com
+  
+    - name: Build and push Docker images
+      # You may pin to the exact commit or the version.
+      # uses: docker/build-push-action@7f9d37fa544684fb73bfe4835ed7214c255ce02b
+      uses: docker/build-push-action@v2.9.0
+      with:
+        tags: ${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/deliverable-receiver:${{ env.GITHUB_RUN_NUMBER }}
+        push: true
+        #seems you need to set this explicitly unless all paths in the Dockerfile are relative
+        context: .
+
+    - name: Output build-info.yaml
+      uses: fredex42/pluto-build-info@v1.0
+      with:
+        builtimage: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/deliverable-receiver:${{ env.GITHUB_RUN_NUMBER }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Check the output
+      run: cat build-info.yaml
+
+    - name: Upload build info
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-info
+        path: build-info.yaml
