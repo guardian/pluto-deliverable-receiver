@@ -9,16 +9,12 @@ on:
 jobs:
   hello_world_job:
     runs-on: ubuntu-latest
-    name: A job to say hello
+    name: Test the build-info action
     steps:
-      - name: Hello world action step
-        id: hello
-        uses: fredex42/hello-world-javascript-action@v1.0
+      - name: Output build-info.yaml
+        uses: fredex42/pluto-build-info@dd433cafebe7cc27d03d7b47c560a354b324733b
         with:
-          who-to-greet: 'Mona the Octocat'
-      # Use the output from the `hello` step
-      - name: Get the output time
-        run: echo "The time was ${{ steps.hello.outputs.time }}"
+          builtimage: test
 
   build:
     runs-on: ubuntu-latest
