@@ -61,7 +61,7 @@ jobs:
         context: .
 
     - name: Output build-info.yaml
-      uses: fredex42/pluto-build-info@91a93eddc7bc7b3c6c70a9f853db2fc6233ac523
+      uses: fredex42/pluto-build-info@v1.0
       with:
         builtimage: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/deliverable-receiver:${{ env.GITHUB_RUN_NUMBER }}
         token: ${{ secrets.GITHUB_TOKEN }}
