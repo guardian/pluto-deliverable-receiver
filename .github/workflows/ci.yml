@@ -48,7 +48,7 @@ jobs:
       run: go test -v ./...
 
     - name: ECR Login
-      run: aws ecr get-login-password --region ***REMOVED*** | docker login --username AWS --password-stdin ***REMOVED***.dkr.ecr.***REMOVED***.amazonaws.com
+      run: aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.***REMOVED***.amazonaws.com
   
     - name: Build and push Docker images
       # You may pin to the exact commit or the version.
