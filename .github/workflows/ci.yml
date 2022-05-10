@@ -39,7 +39,7 @@ jobs:
       uses: docker/setup-buildx-action@v1
       
     - name: Build
-      run: GOOS=linux GOARCH=amd64 go build -v -o deliverable-receiver.linux64
+      run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o deliverable-receiver.linux64
 
     - name: Debug
       run: echo $PWD; ls -lhd deliverable-receiver*
