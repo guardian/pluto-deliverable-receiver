@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"github.com/go-redis/redis/v7"
+	"github.com/go-redis/redis/v8"
 	"gitlab.com/codmill/customer-projects/guardian/deliverable-receiver/helpers"
 	"gitlab.com/codmill/customer-projects/guardian/deliverable-receiver/models"
 	"io/ioutil"
