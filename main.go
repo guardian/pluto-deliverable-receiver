@@ -2,10 +2,11 @@ package main
 
 import (
 	"flag"
-	"github.com/go-redis/redis/v7"
+	"github.com/go-redis/redis/v8"
 	"gitlab.com/codmill/customer-projects/guardian/deliverable-receiver/helpers"
 	"log"
 	"net/http"
+	"context"
 )
 
 type MyHttpApp struct {
@@ -24,7 +25,7 @@ func SetupRedis(config *helpers.Config) (*redis.Client, error) {
 		DB:       config.Redis.DBNum,
 	})
 
-	_, err := client.Ping().Result()
+	_, err := client.Ping(context.TODO()).Result()
 	if err != nil {
 		log.Printf("Could not contact Redis: %s", err)
 		return nil, err

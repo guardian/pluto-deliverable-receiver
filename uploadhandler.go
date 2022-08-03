@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/go-redis/redis/v7"
+	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"gitlab.com/codmill/customer-projects/guardian/deliverable-receiver/helpers"
 	"gitlab.com/codmill/customer-projects/guardian/deliverable-receiver/models"

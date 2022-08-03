@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/go-redis/redis/v7"
+	"github.com/go-redis/redis/v8"
 	"gitlab.com/codmill/customer-projects/guardian/deliverable-receiver/helpers"
 	"log"
 	"net/http"
+	"context"
 )
 
 type HealthcheckHandler struct {
@@ -12,7 +13,7 @@ type HealthcheckHandler struct {
 }
 
 func (h HealthcheckHandler) ServeHTTP(w http.ResponseWriter, request *http.Request) {
-	_, err := h.redisClient.Ping().Result()
+	_, err := h.redisClient.Ping(context.TODO()).Result()
 
 	if err == nil {
 		w.WriteHeader(200)

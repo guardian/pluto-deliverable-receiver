@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-redis/redis/v7"
+	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"log"
 	"time"
+	"context"
 )
 
 /**
@@ -16,7 +17,7 @@ retrieve the upload slot for the given id
 func UploadSlotForId(id uuid.UUID, redis *redis.Client) (*UploadSlot, error) {
 	keyPath := fmt.Sprintf("receiver:upload_slot:%s", id.String())
 
-	content, getErr := redis.Get(keyPath).Result()
+	content, getErr := redis.Get(context.TODO(), keyPath).Result()
 	if getErr != nil {
 		log.Printf("ERROR models.UploadSlotForId could not get value for '%s': %s", keyPath, getErr)
 		return nil, getErr
@@ -31,7 +32,7 @@ func UploadSlotForId(id uuid.UUID, redis *redis.Client) (*UploadSlot, error) {
 	if unmarshalErr != nil {
 		log.Printf("ERROR models.UploadSlotForId could not parse value for '%s': %s. Deleting the corrupted value.", keyPath, unmarshalErr)
 		log.Print("ERROR models.UploadSlotForId content was ", content)
-		redis.Del(keyPath)
+		redis.Del(context.TODO(), keyPath)
 		return nil, unmarshalErr
 	}
 
@@ -57,7 +58,7 @@ func WriteUploadSlot(s *UploadSlot, redis *redis.Client) error {
 		return errors.New("expiry time is in the past")
 	}
 
-	if writeErr := redis.Set(keyPath, string(encodedData), expiry).Err(); writeErr != nil {
+	if writeErr := redis.Set(context.TODO(), keyPath, string(encodedData), expiry).Err(); writeErr != nil {
 		log.Printf("ERROR models.WriteUploadSlot could not write upload slot to storage: %s", writeErr)
 		return errors.New("could not write data")
 	}
