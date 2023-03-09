@@ -13,6 +13,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"github.com/MicahParks/keyfunc"
+	"time"
 )
 
 func extractAuth(h *http.Request) (string, error) {
@@ -69,28 +71,55 @@ func ValidateLogin(h *http.Request, config *Config) (string, error) {
 		return "", rawErr
 	}
 
-	publicCertData, loadErr := LoadPublicKey(config.JWT.CertFile)
-	if loadErr != nil {
-		return "", errors.New("server setup problem, see logs")
-	}
+	var token *jwt.Token
 
-	token, tokErr := jwt.Parse(rawData, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+	if strings.HasPrefix(config.JWT.CertFile, "http") {
+		options := keyfunc.Options{
+				RefreshErrorHandler: func(err error) {
+						log.Printf("ERROR There was an error with the jwt.Keyfunc\nError: %s", err.Error())
+				},
+				RefreshInterval:   time.Hour,
+				RefreshRateLimit:  time.Minute * 5,
+				RefreshTimeout:    time.Second * 10,
+				RefreshUnknownKID: true,
 		}
-		return extractPublicKey(publicCertData)
-	})
 
-	if tokErr != nil {
-		if validationErr, isValidationErr := tokErr.(*jwt.ValidationError); isValidationErr {
-			log.Print("ERROR helpers.jwt.ValidateLogin could not validate: ", validationErr.Error())
-			if (validationErr.Errors | jwt.ValidationErrorExpired) != 0 {
-				return "", errors.New("token is expired")
+		jwks, err := keyfunc.Get(config.JWT.CertFile, options)
+		if err != nil {
+				log.Printf("ERROR Failed to create JWKS from resource at the given URL.\nError: %s", err.Error())
+				return "", errors.New("Error loading JWKS from given URL")
+		}
+
+		if token, err = jwt.Parse(rawData, jwks.Keyfunc); err != nil {
+				log.Printf("ERROR Failed to parse the JWT.\nError: %s", err.Error())
+				return "", errors.New("Error parsing token using JWKS")
+		}
+	} else {
+		publicCertData, loadErr := LoadPublicKey(config.JWT.CertFile)
+		if loadErr != nil {
+			return "", errors.New("Server setup problem, see logs")
+		}
+
+		var tokErr error
+
+		token, tokErr = jwt.Parse(rawData, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+				return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 			}
-		} else {
-			log.Printf("ERROR helpers.jwt.ValidateLogin could not validate token '%s': %s", rawData, tokErr)
+			return extractPublicKey(publicCertData)
+		})
+
+		if tokErr != nil {
+			if validationErr, isValidationErr := tokErr.(*jwt.ValidationError); isValidationErr {
+				log.Print("ERROR helpers.jwt.ValidateLogin could not validate: ", validationErr.Error())
+				if (validationErr.Errors | jwt.ValidationErrorExpired) != 0 {
+					return "", errors.New("Token is expired")
+				}
+			} else {
+				log.Printf("ERROR helpers.jwt.ValidateLogin could not validate token '%s': %s", rawData, tokErr)
+			}
+			return "", errors.New("Internal validation error")
 		}
-		return "", errors.New("internal validation error")
 	}
 
 	if !token.Valid {
